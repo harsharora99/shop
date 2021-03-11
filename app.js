@@ -7,6 +7,7 @@ const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const session = require('express-session') //a middleware to initialise sessions in our project. this middleware lets us save sessions in code memory(like variables)
 
+
 const MongoDBStore = require('connect-mongodb-session')(session) //require('connect-mongodb-session) returns a function which is then executed by passing session which returns a constructor
 const csrf = require('csurf') //for making the application csrf-proof
 const flash = require('connect-flash')
@@ -14,6 +15,9 @@ const multer = require('multer')
 const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan')
+require('dotenv').config()
+const fileUploader = require('./configs/cloudinary.config');
+
 
 const errorController = require('./controllers/error');
 const User = require('./models/user');
@@ -33,23 +37,23 @@ const csrfProtection = csrf();
 // const privateKey = fs.readFileSync('server.key'); //this file is read syncronously before starting the server because it is necessary
 // const certificate = fs.readFileSync('server.cert')
 
-const fileStorage = multer.diskStorage(  //here we define storage engine
-  { //destination and filename functions are called by multer
-  destination: (req, file, cb) => {
-    cb(null, 'images'); //now file will be stored in 'images' folder
-  },
-  filename: (req, file, cb) => {
-    cb(null, new Date().toISOString().replace(/:/g, '-') + '-' + file.originalname);
-  }
-  })
+// const fileStorage = multer.diskStorage(  //here we define storage engine
+//   { //destination and filename functions are called by multer
+//   destination: (req, file, cb) => {
+//     cb(null, 'images'); //now file will be stored in 'images' folder
+//   },
+//   filename: (req, file, cb) => {
+//     cb(null, new Date().toISOString().replace(/:/g, '-') + '-' + file.originalname);
+//   }
+//   })
 
-const fileFilter = (req, file, cb) => {
-  if (file.mimetype === 'image/png' || file.mimetype === 'image/jpg' || file.mimetype === 'image/jpeg') {
-    cb(null, true); //if we want to store file
-  } else {
-    cb(null, false); //if we dont want to store file
-  }
-}
+// const fileFilter = (req, file, cb) => {
+//   if (file.mimetype === 'image/png' || file.mimetype === 'image/jpg' || file.mimetype === 'image/jpeg') {
+//     cb(null, true); //if we want to store file
+//   } else {
+//     cb(null, false); //if we dont want to store file
+//   }
+// }
 
 app.set('view engine', 'ejs');
 app.set('views', 'views');
@@ -65,7 +69,7 @@ const accessLogStream = fs.createWriteStream(path.join(__dirname, 'access.log'),
 //flags:'a' means new data will be appended and not overwrite
 
 //now below are some middlewares which are used on every request that is sent to the server 
-app.use(helmet());
+//app.use(helmet());
 app.use(compression()); //image files are not compressed
 app.use(morgan('combined', {
   stream: accessLogStream
@@ -73,9 +77,10 @@ app.use(morgan('combined', {
 
 app.use(bodyParser.urlencoded({ extended: false }));
 //app.use(multer().single('image')) //we extract only one file which is named 'image' in the form
-app.use(multer({ storage: fileStorage, fileFilter: fileFilter}).single('image'))
+//app.use(multer({ storage: fileStorage, fileFilter: fileFilter}).single('image'))
+app.use(fileUploader.single('image'));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/images', express.static(path.join(__dirname, 'images'))); 
+//app.use('/images', express.static(path.join(__dirname, 'images')));
 //app.use(session({secret: 'my secret', resave: false, saveUninitialized: false}))  //the value of secret field can be any string of our choice(preferably should be ling enough)
 //resave: false tells that the session should be resaved only if there is some change in the session and not on every request-response (improves performance)
 //now session middleware is initialised and now onwards a session object will be added to every request object sent
